@@ -1,0 +1,16 @@
+import ProjectDescription
+import ProjectDescriptionHelpers
+import DependencyPlugin
+
+let target: Target = Target.create(
+    targetName: "{{ name | capitalize }}",
+    dependencies: [],
+)
+
+let project = Project.create(
+    name: "{{ name | capitalize }}",
+    packages: [],
+    targets: [target],
+    schemes: [],
+    resourceSynthesizers: .default
+)

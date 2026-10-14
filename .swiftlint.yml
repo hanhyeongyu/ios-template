@@ -1,0 +1,25 @@
+disabled_rules:
+  - colon
+  - comma
+  - control_statement
+  - identifier_name
+  - shorthand_operator
+  - empty_count
+  - line_length
+  - type_name
+  - force_cast
+  - force_try
+  - cyclomatic_complexity
+  - unused_optional_binding
+  - for_where
+  - trailing_whitespace
+  - file_length
+  - type_body_length
+  - function_body_length
+  - function_parameter_count
+  - large_tuple
+  - unneeded_synthesized_initializer
+  - blanket_disable_command
+opt_in_rules:
+included:
+excluded:

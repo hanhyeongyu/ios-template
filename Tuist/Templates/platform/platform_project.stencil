@@ -1,0 +1,18 @@
+import ProjectDescription
+import ProjectDescriptionHelpers
+import DependencyPlugin
+
+let target: Target = Target.createWithoutResource(
+    targetName: "{{ name | capitalize }}",
+    product: .staticFramework,
+    infoPlist: nil,
+    dependencies: [],
+    settings: nil
+)
+
+let project = Project.create(
+    name: "{{ name | capitalize }}",
+    packages: [],
+    targets: [target],
+    schemes: []
+)

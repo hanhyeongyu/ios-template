@@ -1,0 +1,77 @@
+import Foundation
+import UserNotifications
+import os
+
+protocol AppNotification {
+    func registerNotifcation(notification: LocalNotification) async throws -> [String]
+    func unRegisterNotification(id: String) async
+    func unRegisterNotifications(ids: [String]) async
+}
+
+public final class AppNotificationManager {
+    public static let shared = AppNotificationManager()
+
+    private let center = UNUserNotificationCenter.current()
+    public let localAdapter: LocalNotificationAdapter
+
+    private init() {
+        localAdapter = LocalNotificationAdapter(center: center)
+#if DEBUG
+        // UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+#endif
+    }
+
+    public func setupNotification() async throws -> Bool {
+        let granted = try await requestPermission()
+        // setAction()
+        os_log("Notification Center Perssion: \(granted)")
+        return granted
+    }
+
+    func checkNotificationStatus() async -> Bool {
+        let setttings = await center.notificationSettings()
+        let isGranted = setttings.authorizationStatus == .authorized
+        os_log("UNAuthorizationStatus is %@", "\(setttings.authorizationStatus)")
+        return isGranted
+    }
+
+    // MARK: Permission
+    private func requestPermission() async throws -> Bool {
+        os_log("requestPermission (If Not Exists): Notification Permission")
+        // .provisional -> not sound...
+        return try await center.requestAuthorization(options: [.alert, .badge, .sound, .providesAppNotificationSettings])
+        // return try await center.requestAuthorization(options: [.alert, .badge, .sound, .provisional, .providesAppNotificationSettings, ]) //.provisional -> not sound...
+    }
+
+    private func getNoticationSetting() async {
+        let settings = await center.notificationSettings()
+        guard (settings.authorizationStatus == .authorized) ||
+                  (settings.authorizationStatus == .provisional) else { return }
+        if settings.alertSetting == .enabled {
+            // Schedule an alert-only notification.
+        } else {
+            // Schedule a notification with a badge and sound.
+        }
+    }
+
+    // MARK: Action
+    private func setAction() {
+        let action1 = UNNotificationAction(identifier: "Action1Identifier", title: "Action 1", options: [])
+        let action2 = UNNotificationAction(identifier: "Action2Identifier", title: "Action 2", options: [])
+
+        let category = UNNotificationCategory(
+            identifier: "CategoryIdentifier",
+            actions: [action1, action2],
+            intentIdentifiers: [],
+            hiddenPreviewsBodyPlaceholder: "",
+            options: .customDismissAction
+        )
+        center.setNotificationCategories([category])
+    }
+
+    // Check RegiserNotifications
+    func registereNotifications() async -> [UNNotificationRequest] {
+        let requests = await center.pendingNotificationRequests()
+        return requests
+    }
+}

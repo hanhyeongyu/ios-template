@@ -1,0 +1,131 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out
+#
+#     https://docs.fastlane.tools/actions
+#
+# For a list of all available plugins, check out
+#
+#     https://docs.fastlane.tools/plugins/available-plugins
+#
+
+# Uncomment the line if you want fastlane to automatically update itself
+# update_fastlane
+
+require "fileutils"
+require "shellwords"
+
+default_platform(:ios)
+
+platform :ios do
+  before_all do
+    load_app_store_connect_api_key
+  end
+
+  desc "Build the app and upload it to TestFlight"
+  lane :beta do
+    next_build_number = build_release_app
+
+    upload_to_testflight(
+      distribute_external: false,
+      skip_waiting_for_build_processing: true,
+    )
+
+    notify_slack(
+      message: "TestFlight deployment succeeded. Build #{next_build_number}",
+      success: true,
+    )
+  rescue => exception
+    notify_slack(
+      message: "TestFlight deployment failed: #{exception}",
+      success: false,
+    )
+    raise
+  ensure
+    clean_release_artifacts
+  end
+
+  desc "Build the app and submit it to App Review"
+  lane :release do
+    next_build_number = build_release_app
+
+    upload_to_app_store(
+      submit_for_review: true,
+      automatic_release: false,
+      force: true,
+      skip_screenshots: true,
+      skip_metadata: false,
+      submission_information: { export_compliance_uses_encryption: false },
+      release_notes: {
+        "en-US" => "Bug fixes and small improvements.",
+      },
+    )
+
+    notify_slack(
+      message: "App Store review submission succeeded. Build #{next_build_number}",
+      success: true,
+    )
+  rescue => exception
+    notify_slack(
+      message: "App Store review submission failed: #{exception}",
+      success: false,
+    )
+    raise
+  ensure
+    clean_release_artifacts
+  end
+
+  private_lane :build_release_app do
+    next_build_number = latest_testflight_build_number + 1
+
+    generate_workspace
+
+    build_app(
+      workspace: "template.xcworkspace",
+      scheme: "template",
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: "fastlane/build",
+      clean: true,
+      xcargs: "CURRENT_PROJECT_VERSION=#{next_build_number}",
+    )
+
+    next_build_number
+  end
+
+  private_lane :generate_workspace do
+    root = File.expand_path("..", __dir__).shellescape
+
+    sh("cd #{root} && TUIST_ROOT_DIR=#{root} tuist generate --no-open")
+  end
+
+  private_lane :load_app_store_connect_api_key do
+    key_id = ENV["ASC_KEY_ID"]
+    issuer_id = ENV["ASC_ISSUER_ID"]
+    key_filepath = ENV["ASC_KEY_FILEPATH"]
+    next if key_id.to_s.empty? || issuer_id.to_s.empty? || key_filepath.to_s.empty?
+
+    app_store_connect_api_key(
+      key_id: key_id,
+      issuer_id: issuer_id,
+      key_filepath: key_filepath,
+      in_house: false,
+    )
+  end
+
+  private_lane :notify_slack do |options|
+    slack_webhook_url = ENV["SLACK_WEBHOOK_URL"]
+    next if slack_webhook_url.to_s.empty?
+
+    slack(
+      message: options[:message],
+      success: options[:success],
+      slack_url: slack_webhook_url,
+    )
+  end
+
+  private_lane :clean_release_artifacts do
+    FileUtils.rm_rf("fastlane/build")
+  end
+end

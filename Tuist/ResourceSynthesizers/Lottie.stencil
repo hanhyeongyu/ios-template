@@ -1,0 +1,48 @@
+// swiftlint:disable:this file_name
+// swiftlint:disable all
+// swift-format-ignore-file
+// swiftformat:disable all
+// Generated using SwiftGen — https://github.com/SwiftGen/SwiftGen
+
+{% if files %}
+{% set accessModifier %}{% if param.publicAccess %}public{% else %}internal{% endif %}{% endset %}
+
+#if canImport(Lottie)
+import Lottie
+#if canImport(SwiftUI)
+import SwiftUI
+#endif
+
+// swiftlint:disable superfluous_disable_command
+// swiftlint:disable file_length
+
+// MARK: - JSON Files
+{{accessModifier}} enum {{param.enumName|default:"JSONFiles"}} {
+    {% for file in files %}
+    {{accessModifier}} enum {{file.name|swiftIdentifier:"pretty"|escapeReservedKeywords}} {
+        public static let name = "{{file.path|basename}}"
+    }
+    {% endfor %}
+}
+
+// MARK: - LottieAssets
+{{accessModifier}} struct {{param.enumName|default:"LottieAssets"}} {
+    {{accessModifier}} let name: String
+
+    {{accessModifier}} var swiftUI: LottieView<EmptyView> {
+        return LottieView(animation: .named(name, bundle: Bundle.module))
+    }
+}
+
+{{accessModifier}} extension {{param.enumName|default:"LottieAssets"}} {
+    {% for file in files %}
+    static let {{file.name|swiftIdentifier:"pretty"|lowerFirstWord}} = {{param.enumName|default:"LottieAssets"}}(name: "{{file.path|basename}}")
+    {% endfor %}
+}
+
+
+{% else %}
+// No files found
+{% endif %}
+
+#endif

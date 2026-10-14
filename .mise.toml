@@ -1,0 +1,6 @@
+[tools]
+tuist = "4.208.0"
+
+[env]
+# TUIST_DEVELOPMENT_TEAM and other secrets, kept outside the repository.
+_.file = "~/.config/template/secrets.env"
